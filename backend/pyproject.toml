@@ -2,6 +2,7 @@
 name = "nasdaq100-backtester-backend"
 version = "0.1.0"
 description = "High-speed local Nasdaq-100 5-minute scalping backtesting platform"
+license = { text = "WTFPL" }
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115.0",

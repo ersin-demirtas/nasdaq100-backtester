@@ -22,6 +22,7 @@ Everything runs **100% locally on your machine** (FastAPI + Polars + Numba JIT b
 4. [Supported Instruments & Friction Presets](#4-supported-instruments--friction-presets)
 5. [Project Structure](#5-project-structure)
 6. [Troubleshooting & FAQ](#6-troubleshooting--faq)
+7. [License (WTFPL)](#7-license)
 
 ---
 
@@ -337,3 +338,11 @@ nasdaq100-backtester/
   Thanks to ZSTD columnar Parquet compression, **8–10 years** of combined `1-minute` (~1.9M–2.4M bars) + `5-minute` (~380k–480k bars) Nasdaq-100 data uses only **~20–35 MB** on disk.
 - **Does Replay Mode leak future data on 1H or 4H charts?**
   **Never.** Every replay step slices the underlying 1-minute dataset strictly at `ts <= sim_ts` before aggregating higher timeframes (`3m`, `15m`, `1H`, `4H`, `1D`) and computing indicators (`FVG`, `VWAP`, `SMA`, `0DTE AEM`). An incomplete 4-hour candle at `10:15 ET` shows only the high/low/close formed up to `10:15 ET`, identical to live trading.
+
+---
+
+## 7. License
+
+Licensed under the **[WTFPL — Do What The Fuck You Want To Public License (v2)](LICENSE)**.
+You are free to copy, modify, distribute, and use this software for any purpose with zero restrictions.
+
