@@ -1,0 +1,33 @@
+# Python & Numba caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.nbc
+*.nbi
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+backend/.venv/
+
+# Node / Frontend build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Local historical market data & caches (auto-generated / downloaded locally)
+data/cache/
+data/datasets/
+*.parquet
+*.bi5
+
+# Environment & OS metadata
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
