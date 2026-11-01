@@ -129,33 +129,33 @@ export const DataHubModal: React.FC<Props> = ({ open, onClose, datasets, onDatas
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-950/70">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-[#181c27] border border-[#2a2e39] rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#222631] bg-[#131722]">
           <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-bold text-white">Historical 5m + 1m Data Hub (5–10+ Years Local Parquet Store)</h2>
+            <Database className="w-4 h-4 text-[#5b8cff]" />
+            <h2 className="text-sm font-semibold text-white">Historical Market Data Hub</h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-[#9598a1] hover:text-white cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-800 bg-slate-950/40 text-xs">
+        <div className="flex border-b border-[#222631] bg-[#131722]/60 text-xs">
           {[
-            { id: 'dukascopy', label: '1. Dukascopy NAS100 (Free, No Key)' },
-            { id: 'upload', label: '2. Import CSV / Parquet' },
-            { id: 'alpaca', label: '3. Alpaca QQQ API' },
-            { id: 'manage', label: `4. Stored Datasets (${datasets.length})` },
+            { id: 'dukascopy', label: 'Dukascopy NAS100 (Free)' },
+            { id: 'upload', label: 'Import CSV / Parquet' },
+            { id: 'alpaca', label: 'Alpaca QQQ' },
+            { id: 'manage', label: `Local Datasets (${datasets.length})` },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id as typeof tab)}
-              className={`px-4 py-2.5 font-medium border-b-2 transition ${
+              className={`px-4 py-2.5 font-medium border-b-2 transition cursor-pointer ${
                 tab === t.id
-                  ? 'border-cyan-400 text-cyan-300 bg-cyan-500/5'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-[#2962FF] text-white'
+                  : 'border-transparent text-[#787b86] hover:text-[#d1d4dc]'
               }`}
             >
               {t.label}
@@ -271,9 +271,9 @@ export const DataHubModal: React.FC<Props> = ({ open, onClose, datasets, onDatas
               <button
                 onClick={startDukascopy}
                 disabled={activeJob?.status === 'running'}
-                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-[#2962FF] hover:bg-blue-500 disabled:opacity-50 text-white font-semibold flex items-center gap-2 cursor-pointer"
               >
-                <CloudDownload className="w-4 h-4" /> Download Real Dukascopy NAS100 Data
+                <CloudDownload className="w-4 h-4" /> Download Dukascopy NAS100 Data
               </button>
             </div>
           )}

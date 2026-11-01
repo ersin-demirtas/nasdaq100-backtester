@@ -2,28 +2,34 @@
 
 @layer base {
   body {
-    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
-    background-color: #060911;
-    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif;
+    background-color: #0b0e14;
+    color: #d1d4dc;
+    -webkit-font-smoothing: antialiased;
   }
 
   code, pre, .font-mono {
-    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom sleek dark scrollbars */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Minimal TradingView-style scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: #0b0e14;
 }
 ::-webkit-scrollbar-thumb {
-  background: #283548;
+  background: #2a2e39;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b4f6b;
+  background: #363a45;
 }

@@ -719,48 +719,57 @@ export const UniversalSuiteChart: React.FC<Props> = ({
   return (
     <div
       ref={wrapRef}
-      className={`relative w-full h-full bg-[#131722] rounded-xl border overflow-hidden select-none ${
-        pickMode ? 'border-amber-400 cursor-crosshair ring-1 ring-amber-400/50' : 'border-slate-800/90'
+      className={`relative w-full h-full bg-[#131722] rounded-lg border overflow-hidden select-none ${
+        pickMode ? 'border-amber-400 cursor-crosshair ring-1 ring-amber-400/40' : 'border-[#222631]'
       }`}
     >
-      {/* Top-Left TradingView Watermark / Legend */}
-      <div className="absolute top-2 left-2.5 z-20 pointer-events-none flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2 bg-[#131722]/88 backdrop-blur-xs px-2 py-1 rounded border border-slate-800/80 text-[11px] font-mono">
-          <span className="font-bold text-white px-1.5 py-0.2 rounded bg-[#2962FF]/25 border border-[#2962FF]/50 text-cyan-200">
+      {/* Clean TradingView-style Minimal Top-Left Legend */}
+      <div className="absolute top-2 left-3 z-20 pointer-events-none flex flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 text-xs tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+          <span className="font-semibold text-white tracking-tight">
             NAS100 · {tfLabel}
           </span>
           {shown && (
-            <>
-              <span className="text-slate-400">{shown.et} ET</span>
-              <span className="text-slate-300">O {shown.open.toFixed(2)}</span>
-              <span className="text-[#089981]">H {shown.high.toFixed(2)}</span>
-              <span className="text-[#f23645]">L {shown.low.toFixed(2)}</span>
-              <span className={shown.close >= shown.open ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'}>
-                C {shown.close.toFixed(2)}
+            <div className="flex items-center gap-2 font-mono text-[11px]">
+              <span className="text-[#787b86]">{shown.et} ET</span>
+              <span className="text-[#b2b5be]">
+                <span className="text-[#787b86]">O</span> {shown.open.toFixed(2)}
               </span>
-            </>
+              <span className="text-[#b2b5be]">
+                <span className="text-[#787b86]">H</span> {shown.high.toFixed(2)}
+              </span>
+              <span className="text-[#b2b5be]">
+                <span className="text-[#787b86]">L</span> {shown.low.toFixed(2)}
+              </span>
+              <span className={shown.close >= shown.open ? 'text-[#089981] font-semibold' : 'text-[#f23645] font-semibold'}>
+                <span className="text-[#787b86] font-normal">C</span> {shown.close.toFixed(2)}
+              </span>
+            </div>
           )}
         </div>
 
         {!compact && (
-          <div className="flex flex-wrap items-center gap-2.5 px-2 py-0.5 bg-[#131722]/75 rounded text-[10px] font-mono text-slate-300">
-            <span className="text-slate-400 font-semibold">Universal Suite:</span>
-            {pane?.suite.fvg && <span className="text-[#089981]">■ FVG ({pane.suite.fvg.boxes.length})</span>}
+          <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-[#787b86] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+            {pane?.suite.fvg && (
+              <span>
+                <span className="text-[#089981]">FVG</span> {pane.suite.fvg.boxes.length} active
+              </span>
+            )}
             {pane?.suite.ma && (
               <span>
-                <span className="text-[#FF6D00]">SMA {pane.suite.ma.short_len}</span> /{' '}
+                <span className="text-[#FF6D00]">SMA {pane.suite.ma.short_len}</span> ·{' '}
                 <span className="text-[#43A047]">SMA {pane.suite.ma.long_len}</span>
               </span>
             )}
-            {pane?.suite.vwap && <span className="text-[#2962FF]">● VWAP</span>}
-            {pane?.suite.aem && <span className="text-white">━ 0DTE AEM</span>}
-            {pane?.suite.mtf_candles && <span className="text-cyan-300">▮ MTF (15m·1H·4H·1D)</span>}
+            {pane?.suite.vwap && <span className="text-[#5b8cff]">VWAP</span>}
+            {pane?.suite.aem && <span className="text-[#d1d4dc]">0DTE EM</span>}
+            {pane?.suite.mtf_candles && <span className="text-[#9598a1]">MTF Candles</span>}
           </div>
         )}
 
         {pickMode && (
-          <div className="px-2.5 py-1 rounded bg-amber-500/20 border border-amber-400/60 text-amber-200 text-xs font-semibold">
-            Click anywhere on chart to set {pickMode === 'SL' ? 'Stop-Loss' : pickMode === 'TP' ? 'Take-Profit' : 'Order Trigger'} price
+          <div className="mt-1 px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-200 text-xs font-medium">
+            Click on chart to set {pickMode === 'SL' ? 'Stop Loss' : pickMode === 'TP' ? 'Take Profit' : 'Trigger'} price (Esc to cancel)
           </div>
         )}
       </div>

@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Calendar,
+  Columns2,
   Crosshair,
   Dices,
   FastForward,
   Grid2x2,
-  Columns2,
   Maximize2,
   Pause,
   Play,
   RotateCcw,
-  Sliders,
+  Settings2,
   StepForward,
   Trash2,
 } from 'lucide-react';
@@ -76,6 +77,8 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
   const [stepSizeBars, setStepSizeBars] = useState<number>(1); // 1 = 1m, 3 = 3m, 5 = 5m
   const [jumpDate, setJumpDate] = useState<string>('2025-05-15');
   const [jumpTime, setJumpTime] = useState<string>('09:25');
+  const [jumpOpen, setJumpOpen] = useState<boolean>(false);
+  const [dockTab, setDockTab] = useState<'order' | 'history'>('order');
   const [loading, setLoading] = useState<boolean>(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -486,6 +489,11 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
   // Keyboard shortcuts (`Space` Play/Pause, `->` Step, `B` Buy, `S` Sell, `F` Flatten)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Escape') {
+        setPickMode(null);
+        setJumpOpen(false);
+        return;
+      }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
       if (e.code === 'Space') {
@@ -555,22 +563,26 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
   const previewRiskUsd = useBracketSl ? slPts * inst.point_value * contracts : 0;
   const previewRewardUsd = useBracketTp ? tpPts * inst.point_value * contracts : 0;
 
+  const toggleLayer = (key: 'show_fvg' | 'show_ma' | 'show_vwap' | 'show_aem' | 'show_mtf') => {
+    setSuiteSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] min-h-[600px] gap-2.5">
-      {/* Top Replay & Multi-Timeframe Command Bar */}
-      <div className="bg-[#131722] border border-slate-800 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
-        {/* Left: Timeframe Buttons & Layout Switcher */}
+    <div className="flex flex-col h-[calc(100vh-66px)] min-h-[580px] gap-2">
+      {/* Unified TradingView-Style Top Toolbar (Jakob's Law + Hick's Law) */}
+      <div className="bg-[#131722] border border-[#222631] rounded-lg px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+        {/* Left: Timeframes · Layouts · 1-Click Indicator Toggles */}
         <div className="flex flex-wrap items-center gap-2">
           {layoutMode === 'single' && (
-            <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 font-mono">
+            <div className="flex items-center gap-0.5 font-mono text-[11px]">
               {SINGLE_TFS.map((t) => (
                 <button
                   key={t.code}
                   onClick={() => setActiveTf(t.code)}
-                  className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                  className={`px-2 py-1 rounded transition cursor-pointer ${
                     activeTf === t.code
-                      ? 'bg-[#2962FF] text-white font-bold'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-[#2962FF]/20 text-[#5b8cff] font-semibold'
+                      : 'text-[#9598a1] hover:text-white hover:bg-[#1e222d]'
                   }`}
                 >
                   {t.label}
@@ -579,55 +591,98 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
             </div>
           )}
 
-          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5">
+          {layoutMode === 'single' && <div className="h-4 w-px bg-[#2a2e39]" />}
+
+          {/* Layout Icons */}
+          <div className="flex items-center gap-0.5">
             <button
               onClick={() => setLayoutMode('single')}
-              className={`px-2 py-1 rounded flex items-center gap-1 cursor-pointer ${
-                layoutMode === 'single' ? 'bg-slate-800 text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer ${
+                layoutMode === 'single'
+                  ? 'bg-[#1e222d] text-white font-medium'
+                  : 'text-[#787b86] hover:text-white'
               }`}
-              title="Single Chart View"
+              title="Single Chart"
             >
-              <Maximize2 className="w-3.5 h-3.5" /> Single
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Single</span>
             </button>
             <button
               onClick={() => setLayoutMode('split')}
-              className={`px-2 py-1 rounded flex items-center gap-1 cursor-pointer ${
-                layoutMode === 'split' ? 'bg-slate-800 text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer ${
+                layoutMode === 'split'
+                  ? 'bg-[#1e222d] text-white font-medium'
+                  : 'text-[#787b86] hover:text-white'
               }`}
-              title="2-Chart Split: 3m + 15m"
+              title="Split View: 3m + 15m"
             >
-              <Columns2 className="w-3.5 h-3.5" /> 3m + 15m
+              <Columns2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Split</span>
             </button>
             <button
               onClick={() => setLayoutMode('quad')}
-              className={`px-2 py-1 rounded flex items-center gap-1 cursor-pointer ${
-                layoutMode === 'quad' ? 'bg-slate-800 text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer ${
+                layoutMode === 'quad'
+                  ? 'bg-[#1e222d] text-white font-medium'
+                  : 'text-[#787b86] hover:text-white'
               }`}
-              title="4-Chart Multi-Timeframe Grid: 3m · 15m · 1H · 4H"
+              title="4-Chart Multi-Timeframe Grid (3m · 15m · 1H · 4H)"
             >
-              <Grid2x2 className="w-3.5 h-3.5" /> Quad (3m·15m·1H·4H)
+              <Grid2x2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">4x Grid</span>
             </button>
           </div>
 
-          <button
-            onClick={() => setSuiteModalOpen(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-[#2962FF]/15 hover:bg-[#2962FF]/25 border border-[#2962FF]/40 text-cyan-200 font-medium flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sliders className="w-3.5 h-3.5 text-[#2962FF]" /> Universal Suite
-          </button>
+          <div className="h-4 w-px bg-[#2a2e39]" />
+
+          {/* One-Click Indicator Layer Pills + Gear Modal */}
+          <div className="flex items-center gap-1">
+            {(
+              [
+                { key: 'show_fvg', label: 'FVG' },
+                { key: 'show_ma', label: 'MA' },
+                { key: 'show_vwap', label: 'VWAP' },
+                { key: 'show_aem', label: '0DTE' },
+                { key: 'show_mtf', label: 'MTF' },
+              ] as const
+            ).map((ind) => {
+              const on = suiteSettings[ind.key];
+              return (
+                <button
+                  key={ind.key}
+                  onClick={() => toggleLayer(ind.key)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium border transition cursor-pointer ${
+                    on
+                      ? 'bg-[#1e222d] border-[#363a45] text-[#d1d4dc]'
+                      : 'bg-transparent border-transparent text-[#5d606b] hover:text-[#9598a1]'
+                  }`}
+                  title={`Toggle ${ind.label} layer`}
+                >
+                  {ind.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setSuiteModalOpen(true)}
+              className="p-1 rounded text-[#9598a1] hover:text-white hover:bg-[#1e222d] transition cursor-pointer"
+              title="Universal Suite Indicator Settings"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Center: Replay Transport Controls */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* Right: Clean Replay Media Transport */}
+        <div className="flex flex-wrap items-center gap-1.5 relative">
           <button
             onClick={() => {
               setPlaying(false);
               loadReplay('random_ny_open', { resetZoom: true });
             }}
-            className="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-200 font-medium flex items-center gap-1 cursor-pointer"
-            title="Teleport to a random historical NY Morning (09:20 ET) across 5–10 years"
+            className="px-2.5 py-1 rounded-md bg-[#1e222d] hover:bg-[#2a2e39] text-[#d1d4dc] flex items-center gap-1.5 transition cursor-pointer"
+            title="Jump to a random historical NY Morning (09:20 ET)"
           >
-            <Dices className="w-3.5 h-3.5" /> Random NY Morning
+            <Dices className="w-3.5 h-3.5 text-[#5b8cff]" /> Random Day
           </button>
 
           <button
@@ -635,45 +690,73 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
               setPlaying(false);
               loadReplay('next_ny_open', { resetZoom: true });
             }}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1 cursor-pointer"
-            title="Skip overnight session straight to next trading day 09:20 ET"
+            className="px-2.5 py-1 rounded-md bg-[#1e222d] hover:bg-[#2a2e39] text-[#d1d4dc] flex items-center gap-1 transition cursor-pointer"
+            title="Skip straight to next trading day 09:20 ET"
           >
-            <FastForward className="w-3.5 h-3.5 text-amber-400" /> Next NY Open
+            <FastForward className="w-3.5 h-3.5 text-[#9598a1]" /> Next Open
           </button>
 
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 font-mono">
-            <input
-              type="date"
-              value={jumpDate}
-              onChange={(e) => setJumpDate(e.target.value)}
-              className="bg-transparent text-slate-200 outline-none text-[11px]"
-            />
-            <input
-              type="time"
-              value={jumpTime}
-              onChange={(e) => setJumpTime(e.target.value)}
-              className="bg-transparent text-cyan-300 outline-none text-[11px] w-16"
-            />
+          {/* Progressive-Disclosure Date/Time Popover */}
+          <div className="relative">
             <button
-              onClick={() => {
-                setPlaying(false);
-                loadReplay('jump_date', { resetZoom: true });
-              }}
-              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] cursor-pointer"
+              onClick={() => setJumpOpen((o) => !o)}
+              className="px-2.5 py-1 rounded-md bg-[#0e1117] hover:bg-[#1e222d] border border-[#222631] text-[#d1d4dc] font-mono text-[11px] flex items-center gap-1.5 tabular-nums cursor-pointer"
+              title="Jump to specific historical date & time (ET)"
             >
-              Go
+              <Calendar className="w-3 h-3 text-[#787b86]" />
+              <span>{frame?.sim_et ?? 'Select Date'} ET</span>
             </button>
+            {jumpOpen && (
+              <div className="absolute right-0 mt-1.5 z-40 bg-[#181c27] border border-[#2a2e39] rounded-lg p-3 shadow-2xl w-64 space-y-2.5">
+                <div className="text-[11px] font-semibold text-white">Jump to Date & Time (NY ET)</div>
+                <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                  <input
+                    type="date"
+                    value={jumpDate}
+                    onChange={(e) => setJumpDate(e.target.value)}
+                    className="bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-white outline-none"
+                  />
+                  <input
+                    type="time"
+                    value={jumpTime}
+                    onChange={(e) => setJumpTime(e.target.value)}
+                    className="bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-white outline-none"
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5">
+                  <button
+                    onClick={() => setJumpOpen(false)}
+                    className="px-2.5 py-1 rounded text-[#9598a1] hover:text-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPlaying(false);
+                      setJumpOpen(false);
+                      loadReplay('jump_date', { resetZoom: true });
+                    }}
+                    className="px-3 py-1 rounded bg-[#2962FF] hover:bg-blue-500 text-white font-medium cursor-pointer"
+                  >
+                    Go to Bar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-0.5">
+          <div className="h-4 w-px bg-[#2a2e39]" />
+
+          {/* Play / Step Transport */}
+          <div className="flex items-center gap-1 bg-[#0e1117] border border-[#222631] rounded-md p-0.5">
             <button
               onClick={() => setPlaying((p) => !p)}
-              className={`px-3 py-1 rounded-md font-bold flex items-center gap-1 cursor-pointer ${
-                playing ? 'bg-amber-500 text-slate-950' : 'bg-[#089981] hover:bg-emerald-500 text-white'
+              className={`px-3 py-1 rounded font-semibold flex items-center gap-1 transition cursor-pointer ${
+                playing ? 'bg-amber-500 text-slate-950' : 'bg-[#2962FF] hover:bg-blue-500 text-white'
               }`}
-              title="Spacebar to Play / Pause"
+              title="Spacebar: Play / Pause"
             >
-              {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+              {playing ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
               {playing ? 'Pause' : 'Play'}
             </button>
 
@@ -682,27 +765,18 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
                 setPlaying(false);
                 loadReplay('step', { stepBars: 1 });
               }}
-              className="px-2 py-1 rounded hover:bg-slate-800 text-slate-200 font-mono flex items-center gap-0.5 cursor-pointer"
-              title="Right Arrow (→): Advance +1 minute"
+              className="px-2 py-1 rounded hover:bg-[#1e222d] text-[#d1d4dc] font-mono text-[11px] flex items-center gap-0.5 cursor-pointer"
+              title="Right Arrow (→): Step +1 minute"
             >
-              <StepForward className="w-3.5 h-3.5" /> +1m
-            </button>
-            <button
-              onClick={() => {
-                setPlaying(false);
-                loadReplay('step', { stepBars: 3 });
-              }}
-              className="px-2 py-1 rounded hover:bg-slate-800 text-slate-200 font-mono cursor-pointer"
-              title="Shift + Right Arrow: Advance +3 minutes"
-            >
-              +3m
+              <StepForward className="w-3 h-3 text-[#9598a1]" /> +1m
             </button>
             <button
               onClick={() => {
                 setPlaying(false);
                 loadReplay('step', { stepBars: 5 });
               }}
-              className="px-2 py-1 rounded hover:bg-slate-800 text-slate-200 font-mono cursor-pointer"
+              className="px-2 py-1 rounded hover:bg-[#1e222d] text-[#d1d4dc] font-mono text-[11px] cursor-pointer"
+              title="Step +5 minutes"
             >
               +5m
             </button>
@@ -711,7 +785,8 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
                 setPlaying(false);
                 loadReplay('step', { stepBars: 15 });
               }}
-              className="px-2 py-1 rounded hover:bg-slate-800 text-slate-200 font-mono cursor-pointer"
+              className="px-2 py-1 rounded hover:bg-[#1e222d] text-[#d1d4dc] font-mono text-[11px] cursor-pointer"
+              title="Step +15 minutes"
             >
               +15m
             </button>
@@ -723,31 +798,31 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
                 setSpeedMs(ms);
                 setStepSizeBars(sb);
               }}
-              className="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 font-mono text-[11px] text-cyan-300"
-              title="Play speed"
+              className="bg-transparent hover:bg-[#1e222d] rounded px-1.5 py-1 font-mono text-[11px] text-[#9598a1] outline-none cursor-pointer"
+              title="Replay Speed"
             >
-              <option value="800_1">1x (1m/tick)</option>
-              <option value="350_1">3x (1m/tick)</option>
-              <option value="160_1">6x (1m/tick)</option>
-              <option value="300_3">Fast (3m/tick)</option>
-              <option value="250_5">Turbo (5m/tick)</option>
+              <option value="800_1" className="bg-[#131722]">1x</option>
+              <option value="350_1" className="bg-[#131722]">3x</option>
+              <option value="160_1" className="bg-[#131722]">6x</option>
+              <option value="300_3" className="bg-[#131722]">Fast</option>
+              <option value="250_5" className="bg-[#131722]">Turbo</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Main Split: Left Chart(s) + Right Paper-Trading Execution Dock */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-2.5 min-h-0">
+      {/* Main Split: Left Chart(s) + Right Simplified Order Panel */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-2 min-h-0">
         {/* Chart Area */}
         <div className="flex-1 min-h-0 relative">
           {toast && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-cyan-500/50 text-cyan-200 text-xs font-mono shadow-xl">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#181c27]/95 border border-[#2a2e39] text-[#d1d4dc] text-xs shadow-xl">
               {toast}
             </div>
           )}
           {loading && (
-            <div className="absolute top-3 right-20 z-30 px-2.5 py-1 rounded bg-[#2962FF]/20 border border-[#2962FF]/50 text-cyan-200 text-xs font-mono">
-              Syncing Replay...
+            <div className="absolute top-2.5 right-20 z-30 px-2.5 py-0.5 rounded bg-[#181c27]/90 border border-[#2a2e39] text-[#9598a1] text-[11px]">
+              Syncing...
             </div>
           )}
 
@@ -827,356 +902,406 @@ export const ReplaySimulator: React.FC<Props> = ({ datasetId, instruments }) => 
           )}
         </div>
 
-        {/* Right Paper-Trading Order Execution Dock */}
-        <div className="w-full lg:w-80 shrink-0 bg-[#131722] border border-slate-800 rounded-xl p-3 flex flex-col gap-3 overflow-y-auto text-xs">
-          {/* Sim Clock & Live Quote Tape */}
-          <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 space-y-1.5 font-mono">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-cyan-400 font-bold">{frame?.sim_et ?? '—'} ET</span>
-              <span className="text-slate-400">Spd {frame?.spread.toFixed(2)}pt</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
-              <div className="bg-[#f23645]/10 border border-[#f23645]/30 rounded px-2 py-1 text-center">
-                <div className="text-[10px] text-rose-300">SELL BID</div>
-                <div className="text-sm font-bold text-[#f23645]">{frame?.bid.toFixed(2) ?? '—'}</div>
-              </div>
-              <div className="bg-[#089981]/10 border border-[#089981]/30 rounded px-2 py-1 text-center">
-                <div className="text-[10px] text-emerald-300">BUY ASK</div>
-                <div className="text-sm font-bold text-[#089981]">{frame?.ask.toFixed(2) ?? '—'}</div>
+        {/* Right TradingView-Style Order Panel (Fitts's Law + Progressive Disclosure) */}
+        <div className="w-full lg:w-76 shrink-0 bg-[#131722] border border-[#222631] rounded-lg flex flex-col overflow-hidden text-xs">
+          {/* Compact Account Summary Header */}
+          <div className="px-3.5 py-2.5 border-b border-[#222631] flex items-center justify-between">
+            <div>
+              <div className="text-[11px] text-[#787b86]">Paper Account</div>
+              <div className="text-sm font-bold text-white font-mono tabular-nums">
+                ${(balance + unrStats.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-          </div>
-
-          {/* Account Balance & Session KPIs */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-2.5 space-y-1.5 font-mono">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[11px]">Account Equity</span>
+            <div className="text-right">
               <button
                 onClick={() => {
                   setBalance(50000);
                   setClosedTrades([]);
                   setPosition(null);
                   setPendingOrders([]);
-                  showNotice('Reset simulation account to $50,000');
+                  showNotice('Account reset to $50,000');
                 }}
-                className="text-[10px] text-slate-400 hover:text-white flex items-center gap-0.5 cursor-pointer"
-                title="Reset balance & session history"
+                className="text-[10px] text-[#787b86] hover:text-white inline-flex items-center gap-1 cursor-pointer"
+                title="Reset paper account to $50,000"
               >
                 <RotateCcw className="w-2.5 h-2.5" /> Reset
               </button>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-base font-bold text-white">
-                ${(balance + unrStats.usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <span className={`text-xs font-bold ${sessionStats.net >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                {sessionStats.net >= 0 ? '+' : ''}${sessionStats.net.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/70">
-              <span>{closedTrades.length} Trades</span>
-              <span>WR {sessionStats.wr}%</span>
-              <span>PF {sessionStats.pf}</span>
+              <div
+                className={`text-xs font-semibold font-mono tabular-nums ${
+                  sessionStats.net + unrStats.usd >= 0 ? 'text-[#089981]' : 'text-[#f23645]'
+                }`}
+              >
+                {sessionStats.net + unrStats.usd >= 0 ? '+' : ''}
+                ${(sessionStats.net + unrStats.usd).toFixed(2)}
+              </div>
             </div>
           </div>
 
-          {/* Instrument & Order Entry Ticket */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-2.5 space-y-2.5">
-            <div className="grid grid-cols-4 gap-1 font-mono text-[11px]">
-              {Object.keys(instruments).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => {
-                    setInstrumentKey(k);
-                    setContracts(instruments[k].default_contracts);
-                  }}
-                  className={`py-1 rounded border cursor-pointer ${
-                    instrumentKey === k
-                      ? 'bg-[#2962FF]/25 border-[#2962FF] text-white font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400'
-                  }`}
-                >
-                  {k === 'NAS100_CFD' ? 'CFD' : k}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-0.5">Order Type</label>
-                <select
-                  value={orderType}
-                  onChange={(e) => setOrderType(e.target.value as 'MARKET' | 'LIMIT' | 'STOP')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white"
-                >
-                  <option value="MARKET">Market</option>
-                  <option value="LIMIT">Limit</option>
-                  <option value="STOP">Stop</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-0.5">
-                  Qty (${inst.point_value}/pt)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={contracts}
-                  onChange={(e) => setContracts(Math.max(1, Number(e.target.value)))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 font-mono text-white text-right"
-                />
-              </div>
-            </div>
-
-            {orderType !== 'MARKET' && (
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
-                  <span>{orderType} Trigger Price</span>
-                  <button
-                    onClick={() => setPickMode(pickMode === 'TRIGGER' ? null : 'TRIGGER')}
-                    className="text-amber-300 hover:underline flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <Crosshair className="w-3 h-3" /> Pick on Chart
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  step={inst.tick_size}
-                  value={triggerPrice}
-                  onChange={(e) => setTriggerPrice(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-amber-500/40 rounded px-2 py-1 font-mono text-amber-300"
-                />
-              </div>
-            )}
-
-            {/* Bracket SL & TP */}
-            <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
-              <div className="flex items-center justify-between gap-1.5">
-                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useBracketSl}
-                    onChange={(e) => setUseBracketSl(e.target.checked)}
-                    className="accent-[#f23645]"
-                  />
-                  SL (Pts)
-                </label>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPickMode(pickMode === 'SL' ? null : 'SL')}
-                    className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-rose-300 cursor-pointer"
-                    title="Click price on chart"
-                  >
-                    Pick
-                  </button>
-                  <input
-                    type="number"
-                    step={2.5}
-                    disabled={!useBracketSl}
-                    value={slPts}
-                    onChange={(e) => setSlPts(Math.max(1, Number(e.target.value)))}
-                    className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-right font-mono text-rose-300 disabled:opacity-40"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-1.5">
-                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useBracketTp}
-                    onChange={(e) => setUseBracketTp(e.target.checked)}
-                    className="accent-[#089981]"
-                  />
-                  TP (Pts)
-                </label>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPickMode(pickMode === 'TP' ? null : 'TP')}
-                    className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-emerald-300 cursor-pointer"
-                    title="Click price on chart"
-                  >
-                    Pick
-                  </button>
-                  <input
-                    type="number"
-                    step={2.5}
-                    disabled={!useBracketTp}
-                    value={tpPts}
-                    onChange={(e) => setTpPts(Math.max(1, Number(e.target.value)))}
-                    className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-right font-mono text-emerald-300 disabled:opacity-40"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
-                <span>Risk: -${previewRiskUsd.toFixed(0)}</span>
-                <span>
-                  RR: {previewRiskUsd > 0 && previewRewardUsd > 0 ? (previewRewardUsd / previewRiskUsd).toFixed(2) : '—'}
-                </span>
-                <span>Goal: +${previewRewardUsd.toFixed(0)}</span>
-              </div>
-            </div>
-
-            {/* Buy / Sell Action Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => submitOrder('LONG')}
-                className="py-2.5 rounded-lg bg-[#089981] hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-950/50 transition cursor-pointer"
-                title="Shortcut: B"
-              >
-                BUY {orderType === 'MARKET' ? 'MKT' : orderType} (B)
-              </button>
-              <button
-                onClick={() => submitOrder('SHORT')}
-                className="py-2.5 rounded-lg bg-[#f23645] hover:bg-rose-500 text-white font-bold shadow-lg shadow-rose-950/50 transition cursor-pointer"
-                title="Shortcut: S"
-              >
-                SELL {orderType === 'MARKET' ? 'MKT' : orderType} (S)
-              </button>
-            </div>
+          {/* Sub-Navigation: Trade Ticket vs Session History */}
+          <div className="grid grid-cols-2 border-b border-[#222631] bg-[#0e1117]/60 text-[11px] font-medium">
+            <button
+              onClick={() => setDockTab('order')}
+              className={`py-2 border-b-2 transition cursor-pointer ${
+                dockTab === 'order'
+                  ? 'border-[#2962FF] text-white'
+                  : 'border-transparent text-[#787b86] hover:text-[#d1d4dc]'
+              }`}
+            >
+              Order Ticket
+            </button>
+            <button
+              onClick={() => setDockTab('history')}
+              className={`py-2 border-b-2 transition cursor-pointer ${
+                dockTab === 'history'
+                  ? 'border-[#2962FF] text-white'
+                  : 'border-transparent text-[#787b86] hover:text-[#d1d4dc]'
+              }`}
+            >
+              History ({closedTrades.length})
+            </button>
           </div>
 
-          {/* Live Open Position Manager */}
-          {position && (
-            <div className="bg-slate-950 border border-[#2962FF]/60 rounded-lg p-2.5 space-y-2 font-mono">
-              <div className="flex items-center justify-between">
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    position.direction === 'LONG'
-                      ? 'bg-[#089981]/20 text-[#089981]'
-                      : 'bg-[#f23645]/20 text-[#f23645]'
-                  }`}
-                >
-                  {position.direction} x{position.contracts} @ {position.entryPrice}
-                </span>
-                <span className={`font-bold text-sm ${unrStats.usd >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                  {unrStats.usd >= 0 ? '+' : ''}${unrStats.usd.toFixed(2)} ({unrStats.pts >= 0 ? '+' : ''}
-                  {unrStats.pts}pt)
-                </span>
+          {dockTab === 'order' ? (
+            <div className="p-3.5 space-y-3.5 flex-1 overflow-y-auto">
+              {/* Instrument Selector */}
+              <div className="grid grid-cols-4 gap-1 bg-[#0e1117] p-0.5 rounded-md border border-[#222631] font-mono text-[11px]">
+                {Object.keys(instruments).map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      setInstrumentKey(k);
+                      setContracts(instruments[k].default_contracts);
+                    }}
+                    className={`py-1 rounded transition cursor-pointer ${
+                      instrumentKey === k
+                        ? 'bg-[#1e222d] text-white font-semibold'
+                        : 'text-[#787b86] hover:text-[#d1d4dc]'
+                    }`}
+                  >
+                    {k === 'NAS100_CFD' ? 'CFD' : k}
+                  </button>
+                ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                <div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Live SL</span>
-                    <button onClick={() => setPickMode('SL')} className="text-rose-300 cursor-pointer">
-                      Pick
-                    </button>
+              {/* Segmented Order Type */}
+              <div className="grid grid-cols-3 gap-1 bg-[#0e1117] p-0.5 rounded-md border border-[#222631] text-[11px]">
+                {(['MARKET', 'LIMIT', 'STOP'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setOrderType(t)}
+                    className={`py-1 rounded font-medium transition cursor-pointer ${
+                      orderType === t
+                        ? 'bg-[#2962FF] text-white'
+                        : 'text-[#787b86] hover:text-[#d1d4dc]'
+                    }`}
+                  >
+                    {t === 'MARKET' ? 'Market' : t === 'LIMIT' ? 'Limit' : 'Stop'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Fitts's Law Primary Sell / Buy Quote Execution Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => submitOrder('SHORT')}
+                  className="py-2.5 px-2 rounded-lg bg-[#f23645] hover:bg-[#ff4757] text-white transition cursor-pointer text-center shadow-sm"
+                  title="Keyboard shortcut: S"
+                >
+                  <div className="text-[10px] uppercase tracking-wider opacity-90 font-semibold">
+                    Sell {orderType === 'MARKET' ? 'Mkt' : orderType}
                   </div>
-                  <input
-                    type="number"
-                    step={inst.tick_size}
-                    value={position.slPrice ?? ''}
-                    onChange={(e) =>
-                      setPosition({ ...position, slPrice: e.target.value ? Number(e.target.value) : null })
-                    }
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-rose-300"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Live TP</span>
-                    <button onClick={() => setPickMode('TP')} className="text-emerald-300 cursor-pointer">
-                      Pick
-                    </button>
+                  <div className="text-sm font-bold font-mono tabular-nums mt-0.5">
+                    {frame?.bid.toFixed(2) ?? '—'}
                   </div>
-                  <input
-                    type="number"
-                    step={inst.tick_size}
-                    value={position.tpPrice ?? ''}
-                    onChange={(e) =>
-                      setPosition({ ...position, tpPrice: e.target.value ? Number(e.target.value) : null })
-                    }
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-emerald-300"
-                  />
-                </div>
+                </button>
+
+                <button
+                  onClick={() => submitOrder('LONG')}
+                  className="py-2.5 px-2 rounded-lg bg-[#089981] hover:bg-[#0aa88e] text-white transition cursor-pointer text-center shadow-sm"
+                  title="Keyboard shortcut: B"
+                >
+                  <div className="text-[10px] uppercase tracking-wider opacity-90 font-semibold">
+                    Buy {orderType === 'MARKET' ? 'Mkt' : orderType}
+                  </div>
+                  <div className="text-sm font-bold font-mono tabular-nums mt-0.5">
+                    {frame?.ask.toFixed(2) ?? '—'}
+                  </div>
+                </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-1 pt-1 text-[10px] font-sans font-semibold">
-                <button
-                  onClick={moveSlToBreakeven}
-                  className="py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 cursor-pointer"
-                >
-                  SL → BE
-                </button>
-                <button
-                  onClick={closeHalfPosition}
-                  disabled={position.contracts <= 1}
-                  className="py-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-amber-300 cursor-pointer"
-                >
-                  Close 50%
-                </button>
-                <button
-                  onClick={() => flattenPosition('FLATTEN')}
-                  className="py-1.5 rounded bg-rose-600/80 hover:bg-rose-500 text-white cursor-pointer"
-                  title="Shortcut: F"
-                >
-                  Flatten (F)
-                </button>
-              </div>
-            </div>
-          )}
+              {/* Clean Order Inputs */}
+              <div className="space-y-2.5 pt-1 border-t border-[#222631]">
+                {orderType !== 'MARKET' && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[#9598a1]">{orderType === 'LIMIT' ? 'Limit' : 'Stop'} Price</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPickMode(pickMode === 'TRIGGER' ? null : 'TRIGGER')}
+                        className="p-1 rounded bg-[#1e222d] hover:bg-[#2a2e39] text-amber-300 cursor-pointer"
+                        title="Pick price on chart"
+                      >
+                        <Crosshair className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="number"
+                        step={inst.tick_size}
+                        value={triggerPrice}
+                        onChange={(e) => setTriggerPrice(Number(e.target.value))}
+                        className="w-24 bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-right font-mono text-white"
+                      />
+                    </div>
+                  </div>
+                )}
 
-          {/* Pending Orders */}
-          {pendingOrders.length > 0 && (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2 space-y-1 font-mono text-[11px]">
-              <div className="text-[10px] text-slate-400 uppercase">Working Orders ({pendingOrders.length})</div>
-              {pendingOrders.map((ord) => (
-                <div key={ord.id} className="flex items-center justify-between bg-slate-950 px-2 py-1 rounded">
-                  <span className="text-amber-300">
-                    {ord.direction} {ord.orderType} x{ord.contracts} @ {ord.triggerPrice}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[#9598a1]">
+                    Quantity <span className="text-[10px] text-[#5d606b]">(${inst.point_value}/pt)</span>
                   </span>
-                  <button
-                    onClick={() => setPendingOrders((prev) => prev.filter((o) => o.id !== ord.id))}
-                    className="text-slate-400 hover:text-rose-400 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    value={contracts}
+                    onChange={(e) => setContracts(Math.max(1, Number(e.target.value)))}
+                    className="w-24 bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-right font-mono text-white"
+                  />
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* Session Closed Trades Log */}
-          <div className="flex-1 min-h-[120px] flex flex-col bg-slate-900/50 border border-slate-800 rounded-lg p-2 overflow-hidden">
-            <div className="text-[10px] text-slate-400 uppercase font-semibold mb-1.5">
-              Session Executions ({closedTrades.length})
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-1 font-mono text-[11px]">
-              {closedTrades.length === 0 ? (
-                <div className="text-slate-500 text-center py-4 text-[11px] font-sans">
-                  Press <kbd className="px-1 bg-slate-800 rounded">Play</kbd> or{' '}
-                  <kbd className="px-1 bg-slate-800 rounded">→</kbd> to step candles, then trade with{' '}
-                  <kbd className="px-1 bg-slate-800 rounded">B</kbd> / <kbd className="px-1 bg-slate-800 rounded">S</kbd>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-[#d1d4dc] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useBracketSl}
+                      onChange={(e) => setUseBracketSl(e.target.checked)}
+                      className="accent-[#f23645]"
+                    />
+                    Stop Loss <span className="text-[10px] text-[#5d606b]">(pts)</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPickMode(pickMode === 'SL' ? null : 'SL')}
+                      className="p-1 rounded bg-[#1e222d] hover:bg-[#2a2e39] text-[#9598a1] hover:text-white cursor-pointer"
+                      title="Click chart to set Stop Loss"
+                    >
+                      <Crosshair className="w-3 h-3" />
+                    </button>
+                    <input
+                      type="number"
+                      step={2.5}
+                      disabled={!useBracketSl}
+                      value={slPts}
+                      onChange={(e) => setSlPts(Math.max(1, Number(e.target.value)))}
+                      className="w-20 bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-right font-mono text-[#f23645] disabled:opacity-40"
+                    />
+                  </div>
                 </div>
-              ) : (
-                closedTrades.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between bg-slate-950/80 px-2 py-1 rounded border border-slate-800/70"
-                  >
+
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-[#d1d4dc] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useBracketTp}
+                      onChange={(e) => setUseBracketTp(e.target.checked)}
+                      className="accent-[#089981]"
+                    />
+                    Take Profit <span className="text-[10px] text-[#5d606b]">(pts)</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPickMode(pickMode === 'TP' ? null : 'TP')}
+                      className="p-1 rounded bg-[#1e222d] hover:bg-[#2a2e39] text-[#9598a1] hover:text-white cursor-pointer"
+                      title="Click chart to set Take Profit"
+                    >
+                      <Crosshair className="w-3 h-3" />
+                    </button>
+                    <input
+                      type="number"
+                      step={2.5}
+                      disabled={!useBracketTp}
+                      value={tpPts}
+                      onChange={(e) => setTpPts(Math.max(1, Number(e.target.value)))}
+                      className="w-20 bg-[#0e1117] border border-[#2a2e39] rounded px-2 py-1 text-right font-mono text-[#089981] disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-[#787b86] pt-1 font-mono tabular-nums">
+                  <span>Risk -${previewRiskUsd.toFixed(0)}</span>
+                  <span>
+                    {previewRiskUsd > 0 && previewRewardUsd > 0
+                      ? `1 : ${(previewRewardUsd / previewRiskUsd).toFixed(1)} RR`
+                      : '—'}
+                  </span>
+                  <span>Target +${previewRewardUsd.toFixed(0)}</span>
+                </div>
+              </div>
+
+              {/* Active Open Position Card */}
+              {position && (
+                <div className="bg-[#0e1117] border border-[#2a2e39] rounded-lg p-3 space-y-2.5">
+                  <div className="flex items-center justify-between font-mono tabular-nums">
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        position.direction === 'LONG'
+                          ? 'bg-[#089981]/20 text-[#089981]'
+                          : 'bg-[#f23645]/20 text-[#f23645]'
+                      }`}
+                    >
+                      {position.direction} ×{position.contracts} @ {position.entryPrice}
+                    </span>
+                    <span className={`font-bold text-sm ${unrStats.usd >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
+                      {unrStats.usd >= 0 ? '+' : ''}${unrStats.usd.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
                     <div>
-                      <span className={t.direction === 'LONG' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'}>
-                        {t.direction[0]}
-                      </span>{' '}
-                      <span className="text-slate-300">
-                        {t.entryPrice}→{t.exitPrice}
-                      </span>
-                      <span className="text-slate-500 block text-[9px]">{t.exitEt} · {t.exitReason}</span>
+                      <div className="flex justify-between text-[10px] text-[#787b86] mb-0.5">
+                        <span>Stop</span>
+                        <button onClick={() => setPickMode('SL')} className="text-[#9598a1] hover:text-white cursor-pointer">
+                          Pick
+                        </button>
+                      </div>
+                      <input
+                        type="number"
+                        step={inst.tick_size}
+                        value={position.slPrice ?? ''}
+                        onChange={(e) =>
+                          setPosition({ ...position, slPrice: e.target.value ? Number(e.target.value) : null })
+                        }
+                        className="w-full bg-[#131722] border border-[#2a2e39] rounded px-2 py-1 text-[#f23645]"
+                      />
                     </div>
-                    <div className={`text-right font-bold ${t.netPnl >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                      {t.netPnl >= 0 ? '+' : ''}${t.netPnl.toFixed(0)}
-                      <span className="block text-[9px] font-normal">
-                        {t.rMultiple >= 0 ? '+' : ''}
-                        {t.rMultiple}R
-                      </span>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-[#787b86] mb-0.5">
+                        <span>Target</span>
+                        <button onClick={() => setPickMode('TP')} className="text-[#9598a1] hover:text-white cursor-pointer">
+                          Pick
+                        </button>
+                      </div>
+                      <input
+                        type="number"
+                        step={inst.tick_size}
+                        value={position.tpPrice ?? ''}
+                        onChange={(e) =>
+                          setPosition({ ...position, tpPrice: e.target.value ? Number(e.target.value) : null })
+                        }
+                        className="w-full bg-[#131722] border border-[#2a2e39] rounded px-2 py-1 text-[#089981]"
+                      />
                     </div>
                   </div>
-                ))
+
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] font-medium">
+                    <button
+                      onClick={moveSlToBreakeven}
+                      className="py-1.5 rounded bg-[#1e222d] hover:bg-[#2a2e39] text-[#d1d4dc] cursor-pointer"
+                    >
+                      Break-Even
+                    </button>
+                    <button
+                      onClick={closeHalfPosition}
+                      disabled={position.contracts <= 1}
+                      className="py-1.5 rounded bg-[#1e222d] hover:bg-[#2a2e39] disabled:opacity-40 text-[#d1d4dc] cursor-pointer"
+                    >
+                      50% Out
+                    </button>
+                    <button
+                      onClick={() => flattenPosition('FLATTEN')}
+                      className="py-1.5 rounded bg-[#f23645] hover:bg-[#ff4757] text-white cursor-pointer"
+                      title="Keyboard shortcut: F"
+                    >
+                      Flatten
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Working Pending Orders */}
+              {pendingOrders.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-[#222631]">
+                  <div className="text-[10px] text-[#787b86] uppercase tracking-wider">
+                    Working Orders ({pendingOrders.length})
+                  </div>
+                  {pendingOrders.map((ord) => (
+                    <div
+                      key={ord.id}
+                      className="flex items-center justify-between bg-[#0e1117] border border-[#222631] px-2.5 py-1.5 rounded font-mono text-[11px]"
+                    >
+                      <span className="text-[#d1d4dc]">
+                        {ord.direction} {ord.orderType} ×{ord.contracts} @ {ord.triggerPrice}
+                      </span>
+                      <button
+                        onClick={() => setPendingOrders((prev) => prev.filter((o) => o.id !== ord.id))}
+                        className="text-[#787b86] hover:text-[#f23645] cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Calm Keyboard Hint Footer */}
+              {!position && pendingOrders.length === 0 && (
+                <div className="pt-2 text-[11px] text-[#5d606b] leading-relaxed">
+                  Shortcuts: <span className="text-[#9598a1] font-mono">Space</span> Play/Pause ·{' '}
+                  <span className="text-[#9598a1] font-mono">→</span> +1m ·{' '}
+                  <span className="text-[#9598a1] font-mono">B</span> Buy ·{' '}
+                  <span className="text-[#9598a1] font-mono">S</span> Sell ·{' '}
+                  <span className="text-[#9598a1] font-mono">F</span> Flatten
+                </div>
               )}
             </div>
-          </div>
+          ) : (
+            /* Session Trade History Tab */
+            <div className="p-3.5 flex-1 flex flex-col gap-2.5 overflow-hidden">
+              <div className="grid grid-cols-3 gap-1.5 bg-[#0e1117] border border-[#222631] rounded-md p-2 text-center font-mono text-[11px]">
+                <div>
+                  <div className="text-[10px] text-[#787b86]">Trades</div>
+                  <div className="text-white font-semibold">{closedTrades.length}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-[#787b86]">Win Rate</div>
+                  <div className="text-white font-semibold">{sessionStats.wr}%</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-[#787b86]">PF</div>
+                  <div className="text-white font-semibold">{sessionStats.pf}</div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[11px]">
+                {closedTrades.length === 0 ? (
+                  <div className="text-[#5d606b] text-center py-8 font-sans">No completed trades in this session yet.</div>
+                ) : (
+                  closedTrades.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between bg-[#0e1117] px-2.5 py-2 rounded border border-[#222631]"
+                    >
+                      <div>
+                        <span className={t.direction === 'LONG' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'}>
+                          {t.direction}
+                        </span>{' '}
+                        <span className="text-[#d1d4dc]">
+                          {t.entryPrice} → {t.exitPrice}
+                        </span>
+                        <span className="text-[#787b86] block text-[10px]">
+                          {t.exitEt} · {t.exitReason}
+                        </span>
+                      </div>
+                      <div className={`text-right font-semibold ${t.netPnl >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
+                        {t.netPnl >= 0 ? '+' : ''}${t.netPnl.toFixed(0)}
+                        <span className="block text-[10px] font-normal text-[#787b86]">
+                          {t.rMultiple >= 0 ? '+' : ''}
+                          {t.rMultiple}R
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
